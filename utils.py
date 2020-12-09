@@ -17,7 +17,7 @@ def save_checkpoint(filepath, **data):
         )
     """
     with open(filepath, "wb") as f:
-        pickle.dump(data)
+        pickle.dump(data, f)
 
 
 def get_checkpoint(filepath, train_function, *args, **kwargs):
@@ -31,7 +31,7 @@ def get_checkpoint(filepath, train_function, *args, **kwargs):
             checkpoint = pickle.load(f)
 
     except FileNotFoundError:
-        data = train_function(*args, **kwargs)
-        save_checkpoint(filepath, **data)
+        checkpoint = train_function(*args, **kwargs)
+        save_checkpoint(filepath, **checkpoint)
     
     return checkpoint
