@@ -1,5 +1,6 @@
 import os
 import re
+import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
@@ -15,6 +16,25 @@ from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 import tensorflow_hub as hub
 
 from utils import get_checkpoint
+
+
+def parse_args():
+    model_choices = [
+        "description_count",
+        "description_tfidf",
+        "authors_categories_count",
+        "authors_categories_tfidf",
+        "authors_categories_lda_count",
+        "authors_categories_lda_tfidf",
+        "title_description_universal_sentence_encoder"
+    ]
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--title", type=str, required=True, help="Specify the title that you wish to use to get content-based recommendations for.")
+    argparser.add_argument("--recommender_model", type=str, required=True, choices=model_choices, help="Specify the name of the recommender you wish to use.")
+    argparser.add_argument("--num_recommendations", type=int, default=5, help="Number of recommendations to output.")
+    argparser.add_argument("--run_sample", action="store_true", help="If this flag is included, the script will run the run_sample method.")
+    argparser.add_argument("--models_dir", type=str, default="models")
+    return argparser.parse_args()
 
 
 ### 0 ###
@@ -61,7 +81,7 @@ def description_analysis(df, tfidf=True):
 
 
 ### Function that takes in book title as input and outputs most similar books
-def get_recommendations(title, cosine_sim, df, indices):
+def get_recommendations(title, cosine_sim, df, indices, num_recommendations=5):
     # Get the index of the book that matches the title
     idx = indices[title]
 
@@ -72,7 +92,7 @@ def get_recommendations(title, cosine_sim, df, indices):
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
 
     # Get the scores of the 10 most similar books
-    sim_scores = sim_scores[1:11]
+    sim_scores = sim_scores[1:1 + num_recommendations]
 
     # Get the book indices
     book_indices = [i[0] for i in sim_scores]
@@ -336,10 +356,7 @@ def title_description_universal_sentence_encoder(df):
     }
     
 
-if __name__ == "__main__":
-    # this portion will only run if we execute the script directly
-    # it will not run if we import something from here in another file
-
+def run_sample():
     df = general_preprocessing(pd.read_csv("data/books.csv"))
 
     # Collect the matrices and other parameters that will be used by get_recommendations (besides title)
@@ -376,3 +393,51 @@ if __name__ == "__main__":
             print(get_recommendations(book_title, cosine_sim=cosine_sim, df=df, indices=indices))
 
         print("\n\n\n")
+
+
+def main(args=None):
+    if args is None:
+        raise ValueError("Must supply arguments to main")
+
+    model_to_function_map = {
+        "description_count": (description_analysis, {"tfidf": False}),
+        "description_tfidf": (description_analysis, {"tfidf": True}),
+        "authors_categories_count": (authors_categories_analysis, {"tfidf": False}),
+        "authors_categories_tfidf": (authors_categories_analysis, {"tfidf": True}),
+        "authors_categories_lda_count": (authors_categories_lda_analysis, {"tfidf": False}),
+        "authors_categories_lda_tfidf": (authors_categories_lda_analysis, {"tfidf": True}),
+        "title_description_universal_sentence_encoder": (title_description_universal_sentence_encoder, {})
+    }
+
+    df = general_preprocessing(pd.read_csv("data/books.csv"))
+
+    function, kwargs = model_to_function_map[args.recommender_model]
+    checkpoint = get_checkpoint(
+        os.path.join(args.models_dir, args.recommender_model + ".chkpt"),
+        function,
+        df,
+        **kwargs
+    )
+
+    cosine_sim = checkpoint["cosine_sim"]
+    indices = checkpoint["indices"]
+    df = checkpoint["df"]
+
+    print("\nmethod: {}, title - {}:\n".format(args.recommender_model, args.title))
+    series_recommendations = get_recommendations(
+        args.title, cosine_sim=cosine_sim, df=df, indices=indices, num_recommendations=args.num_recommendations
+    )
+
+    print(series_recommendations)
+    return series_recommendations
+
+
+if __name__ == "__main__":
+    # this portion will only run if we execute the script directly
+    # it will not run if we import something from here in another file
+
+    args = parse_args()
+    if args.run_sample:
+        run_sample()
+    else:
+        main(args=args)
