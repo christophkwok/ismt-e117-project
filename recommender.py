@@ -29,8 +29,8 @@ def parse_args():
         "title_description_universal_sentence_encoder"
     ]
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--title", type=str, required=True, help="Specify the title that you wish to use to get content-based recommendations for.")
-    argparser.add_argument("--recommender_model", type=str, required=True, choices=model_choices, help="Specify the name of the recommender you wish to use.")
+    argparser.add_argument("--title", type=str, default="The Four Loves", help="Specify the title that you wish to use to get content-based recommendations for.")
+    argparser.add_argument("--recommender_model", type=str, default="description_count", choices=model_choices, help="Specify the name of the recommender you wish to use.")
     argparser.add_argument("--num_recommendations", type=int, default=5, help="Number of recommendations to output.")
     argparser.add_argument("--run_sample", action="store_true", help="If this flag is included, the script will run the run_sample method.")
     argparser.add_argument("--models_dir", type=str, default="models")
