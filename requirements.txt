@@ -1,0 +1,9 @@
+pandas
+sklearn
+gensim
+nltk==3.5
+gensim
+tensorflow
+tensorflow_hub
+spacy
+matplotlib
