@@ -9,7 +9,7 @@ from wordcloud import WordCloud
 from PIL import Image
 
 df = pd.read_csv("books.csv")
-words = ''
+words = ""
 
 for col_name, data in df.items():
     i = str(data[1])
@@ -19,13 +19,20 @@ for col_name, data in df.items():
     words += " ".join(separate) + " "
 
 book_mask = np.array(Image.open("book.png"))
-wc = WordCloud(background_color="black", max_words=2000, max_font_size=40, mask=book_mask, contour_width=3, contour_color='steelblue')
+wc = WordCloud(
+    background_color="black",
+    max_words=2000,
+    max_font_size=40,
+    mask=book_mask,
+    contour_width=3,
+    contour_color="steelblue",
+)
 wc.generate(words)
 wc.to_file("masked.png")
 
-plt.imshow(wc, interpolation='bilinear')
+plt.imshow(wc, interpolation="bilinear")
 plt.axis("off")
 plt.figure()
-plt.imshow(book_mask, cmap=plt.cm.gray, interpolation='bilinear')
+plt.imshow(book_mask, cmap=plt.cm.gray, interpolation="bilinear")
 plt.axis("off")
 plt.show()
