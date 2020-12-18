@@ -3,7 +3,7 @@ import re
 import argparse
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
+import contractions
 import spacy
 from nltk.corpus import stopwords
 import gensim
@@ -71,10 +71,16 @@ def general_preprocessing(df):
 
     # check missing values
     # print(len(df) - df.count())  # 3x faster than df.isna().sum()
-    df.dropna(subset=["description"], inplace=True)
-    df = df.reset_index(drop=True)
     # only keep title, description, author, categories for use in recommender methods and saving in checkpoints
     df = df[["title", "description", "authors", "categories"]]
+    df = df[df.title.notnull()]
+    df = df[df.description.notnull()]
+    # This helps drop foreign languages and strange characters
+    df["description"] = df.description.str.replace(r'[^\x00-\x7F]+', "")
+    df["title"] = df.title.str.replace(r'[^\x00-\x7F]+', "")
+    df = df[df.description != ""]
+    df = df[df.title != ""]
+    df = df.reset_index(drop=True)
     return df
 
 
@@ -241,6 +247,7 @@ def generate_lda_dependencies(df):
 
     def clean_data(sentences):
         for text in sentences:
+            text = contractions.fix(text)
             text = re.sub("\S*@\S*\s?", "", text)  # remove emails
             text = re.sub("\s+", " ", text)  # remove newline chars
             text = re.sub("'", "", text)  # remove single quotes
